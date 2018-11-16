@@ -174,11 +174,14 @@ class LogController extends Controller
     public static function writeParseLog(array $data = [])
     {
         $newLine = "\n";
+        $dateTime = new DateTime();
+        $time = $dateTime->format('d-m-Y H:i:s O');
+
         if (!empty($data)) {
-            $errorMessage = 'Error: log not saved. Log description: ';
+            $errorMessage = ' Error: log not saved. Log description: ';
 
             $error = [];
-            $error['common'] = implode([$errorMessage, $newLine]);
+            $error['common'] = implode([$time, $errorMessage, $newLine]);
             $error['ip'] = implode(['IP: ', $data['ip'], $newLine]);
             $error['time'] = implode(['Time: ', $data['time'], $newLine]);
             $error['method'] = implode(['Method: ', $data['method'], $newLine]);
@@ -190,8 +193,8 @@ class LogController extends Controller
 
             $out = implode($error);
         } else {
-            $errorMessage = 'Error: unexpected fgets() fail.';
-            $out = implode(' ', [date('Y-m-d H:i:s'), $errorMessage, $newLine, $newLine]);
+            $errorMessage = ' Error: unexpected fgets() fail.';
+            $out = implode(' ', [$time, $errorMessage, $newLine, $newLine]);
         }
         file_put_contents('ParseLog.txt', $out, FILE_APPEND);
     }

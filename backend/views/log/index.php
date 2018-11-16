@@ -22,21 +22,22 @@ $this->params['breadcrumbs'][] = $this->title;
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
+        'formatter' => [
+            'class' => 'yii\i18n\Formatter',
+            'timeZone' => Yii::$app->params['timezone']
+        ],
         'columns' => [
             ['class' => 'yii\grid\SerialColumn'],
-
-            'id',
             'ip',
-            'time:datetime',
-            'method',
-            'url:url',
-            //'response',
-            //'byte',
-            //'referrer',
-            //'user_agent',
-            //'created_at',
-
-            ['class' => 'yii\grid\ActionColumn'],
+            [
+                'attribute' => 'time',
+                'format' =>  ['date', 'dd.MM.Y H:i:s'],
+            ],
+            'response',
+            [
+                'class' => 'yii\grid\ActionColumn',
+                'template' => '{view} {delete}',
+            ],
         ],
     ]); ?>
 </div>

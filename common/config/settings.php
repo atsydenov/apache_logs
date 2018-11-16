@@ -7,4 +7,5 @@ return [
     ],
     'formatLogs' => 'combined',
     'fileMask' => 'access.log',
+    'timezone' => '+0600',
 ];

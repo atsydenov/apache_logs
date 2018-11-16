@@ -65,12 +65,12 @@ class Log extends ActiveRecord
     {
         return [
             'id' => 'ID',
-            'ip' => 'Ip',
+            'ip' => 'IP',
             'time' => 'Time',
-            'method' => 'Method',
-            'url' => 'Url',
+            'method' => 'Request Method',
+            'url' => 'URL',
             'response' => 'Response',
-            'byte' => 'Byte',
+            'byte' => 'Bytes',
             'referrer' => 'Referrer',
             'user_agent' => 'User Agent',
             'created_at' => 'Created At',
