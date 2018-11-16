@@ -15,6 +15,7 @@ return [
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
+        '@webroot' => dirname(dirname(__DIR__)),
     ],
     'controllerMap' => [
         'fixture' => [

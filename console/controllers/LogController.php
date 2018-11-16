@@ -19,7 +19,7 @@ class LogController extends Controller
     CONST PATTERN_COMMON = '#(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+)#';
 
     /**
-     * Метод запускается по крону.
+     * Метод запускается по крону из InstallController.
      * Интервал задаётся в settings.php.
      */
     public function actionLogsHandler()

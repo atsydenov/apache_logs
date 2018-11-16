@@ -8,4 +8,11 @@ return [
     'formatLogs' => 'combined',
     'fileMask' => 'access.log',
     'timezone' => '+0600',
+    'parsePeriod' => [
+        'min' => '*',
+        'hour' => '*',
+        'dayMonth' => '*',
+        'month' => '*',
+        'weekDay' => '*',
+    ],
 ];
