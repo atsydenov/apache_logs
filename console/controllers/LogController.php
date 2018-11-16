@@ -10,67 +10,109 @@ use yii\helpers\FileHelper;
 
 class LogController extends Controller
 {
+    # Формат логов
     CONST FORMAT_LOGS_COMBINED = 'combined';
     CONST FORMAT_LOGS_COMMON = 'common';
 
+    # Шаблоны для поиска в строке
     CONST PATTERN_COMBINED = '#(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+) (\".*?\") (\".*?\")#';
-    CONST PATTERN_COMMON = '#(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+)#"';
+    CONST PATTERN_COMMON = '#(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+)#';
 
     /**
-     * Парсинг и запись в БД всех лог файлов, указанных в settings.php.
-     * Скрипт запускается по крону, частота запуска также указывается в settings.php.
+     * Метод запускается по крону.
+     * Интервал задаётся в settings.php.
      */
-	public function actionParse()
-	{
-	    $paths = Yii::$app->params['logs'];
-	    $fileMask = Yii::$app->params['fileMask'];
-
-	    $pattern = self::getPattern();
+    public function actionLogsHandler()
+    {
+        $paths = Yii::$app->params['logs'];
 
         foreach ($paths as $path) {
-            $file = FileHelper::findFiles($path, [
-                'only' => [ $fileMask ]
-            ]);
-
-            $handle = @fopen($file[0], 'r');
-
+            $handle = @fopen(self::getFileByPath($path), 'r');
             if ($handle) {
                 while (($line = fgets($handle, 4096)) !== false) {
-                    preg_match_all($pattern, $line, $matches);
-
-                    /*
-                     * $matches[1][0] - IP
-                     * $matches[7][0] - Request type (GET, POST, etc.)
-                     * $matches[8][0] - URL
-                     * $matches[10][0] - Response code
-                     * $matches[11][0] - Bytes
-                     * $matches[12][0] - Referrer
-                     * $matches[13][0] - User agent
-                     */
-
-                    $date = self::timeTransform($matches);
-
-                    if (!self::logIsExists($matches)) {
-                        $log = new Log();
-                        $log->ip = substr($matches[1][0], 0, 15);
-                        $log->time = intval($date->format('U'));
-                        $log->method = substr($matches[7][0],0,10);
-                        $log->url = substr($matches[8][0],0,255);
-                        $log->response = intval($matches[10][0]);
-                        $log->byte = intval($matches[11][0]);
-                        $log->referrer = substr($matches[12][0], 0,255);
-                        $log->user_agent = substr($matches[13][0], 0, 255);
-                        if (!$log->save()) {
-                            echo 'Error: log not saved!' . "\n";
-                        }
-                    }
+                    $data = self::logParse($line);
+                    self::saveLogFromData($data);
                 }
                 if (!feof($handle)) {
-                    echo 'Error: unexpected fgets() fail.' . "\n";
+                    self::writeParseLog();
                 }
                 fclose($handle);
             }
         }
+    }
+
+    /**
+     * @param $path string
+     * @return string
+     */
+    public static function getFileByPath($path)
+    {
+        $fileMask = Yii::$app->params['fileMask'];
+        $file[0] = '';
+
+        if (is_dir($path)) {
+            $file = FileHelper::findFiles($path, [
+                'only' => [ $fileMask ]
+            ]);
+        }
+        return $file[0];
+    }
+
+    /**
+     * @param $data
+     *
+     * Сохраняем строку из лога в БД.
+     * В случае ошибки пишем в собственный лог.
+     */
+    public static function saveLogFromData($data)
+    {
+        if (!self::logIsExists($data)) {
+            $log = new Log($data);
+            if (!$log->save()) {
+                self::writeParseLog($data);
+            }
+        }
+    }
+
+    /**
+     * @param $line string
+     * @return array
+     *
+     * Парсинг одной строки из логов.
+     */
+	public static function logParse($line)
+	{
+        $pattern = self::getPattern();
+        preg_match_all($pattern, $line, $matches);
+
+        /*
+         * $matches[1][0] - IP
+         * $matches[4][0] - Date
+         * $matches[5][0] - Time
+         * $matches[6][0] - Timezone
+         * $matches[7][0] - Request type (GET, POST, etc.)
+         * $matches[8][0] - URL
+         * $matches[10][0] - Response code
+         * $matches[11][0] - Bytes
+         * $matches[12][0] - Referrer
+         * $matches[13][0] - User agent
+         */
+
+        $date = self::timeTransform($matches[4][0], $matches[5][0], $matches[6][0]);
+
+        $data = [];
+        $data['ip'] = substr($matches[1][0], 0, 15);
+        $data['time'] = intval($date->format('U'));
+        $data['method'] = substr($matches[7][0],0,10);
+        $data['url'] = substr($matches[8][0],0,255);
+        $data['response'] = intval($matches[10][0]);
+        $data['byte'] = intval($matches[11][0]);
+
+        # Существование переменных зависит от $pattern
+        $data['referrer'] = (isset($matches[12][0]) && strlen($matches[12][0]) > 0) ? substr($matches[12][0], 0,255) : null;
+        $data['user_agent'] = (isset($matches[12][0]) && strlen($matches[12][0]) > 0) ? substr($matches[13][0], 0, 255) : null;
+
+        return $data;
 	}
 
     /**
@@ -86,59 +128,71 @@ class LogController extends Controller
     }
 
     /**
-     * @param $matches array
+     * @param $data array
      * @return boolean
      *
      * Проверка существования лога в БД.
      */
-    public static function logIsExists($matches)
+    public static function logIsExists($data)
     {
-        /*
-         * $matches - see above
-         */
-
-        $date = self::timeTransform($matches);
         $logExists = Log::find()
             ->where([
-                'ip' => $matches[1][0],
-                'time' => intval($date->format('U')),
-                'method' => $matches[7][0],
-                'url' => $matches[8][0],
-                'response' => intval($matches[10][0]),
-                'byte' => intval($matches[11][0]),
-                'referrer' => $matches[12][0],
-                'user_agent' => $matches[13][0],
+                'ip' => $data['ip'],
+                'time' => $data['time'],
+                'method' => $data['method'],
+                'url' => $data['url'],
+                'response' => $data['response'],
+                'byte' => $data['byte'],
+                'referrer' => $data['referrer'],
+                'user_agent' => $data['user_agent'],
             ])->exists();
         return (bool) $logExists;
     }
 
     /**
-     * @param $matches array
-     * @return DateTime
+     * @param $date
+     * @param $time
+     * @param $timezone
+     * @return bool|DateTime
      *
      * Преобразуем время в объект DateTime для удобства работы.
      */
-    public static function timeTransform($matches)
+    public static function timeTransform($date, $time, $timezone)
     {
-        /*
-         * $matches[6][0] - Timezone
-         * $matches[4][0] - Date
-         * $matches[5][0] - Time
-         */
-
-        $timezone = new DateTimeZone($matches[6][0]);
-        $date = DateTime::createFromFormat('d/M/Y H:i:s', implode(' ', [$matches[4][0], $matches[5][0]]), $timezone);
-        return $date;
+        $timezone = new DateTimeZone($timezone);
+        $dateTime = DateTime::createFromFormat('d/M/Y H:i:s', implode(' ', [$date, $time]), $timezone);
+        return $dateTime;
     }
 
-    public static function writeParseLog(array $matches = [])
+    /**
+     * @param array $data
+     *
+     * Записываем ошибки парсинга и сохранения в БД в ParseLog.txt.
+     * Если $data не пусто, то это означает ошибку сохранения лога в БД, иначе ошибку fgets().
+     * P.S. В случае, если ParseLog.txt не пуст, то он будет располагаться в корне сайта.
+     */
+    public static function writeParseLog(array $data = [])
     {
-        if (!empty($matches)) {
+        $newLine = "\n";
+        if (!empty($data)) {
+            $errorMessage = 'Error: log not saved. Log description: ';
 
+            $error = [];
+            $error['common'] = implode([$errorMessage, $newLine]);
+            $error['ip'] = implode(['IP: ', $data['ip'], $newLine]);
+            $error['time'] = implode(['Time: ', $data['time'], $newLine]);
+            $error['method'] = implode(['Method: ', $data['method'], $newLine]);
+            $error['url'] = implode(['Method: ', $data['url'], $newLine]);
+            $error['response'] = implode(['Response: ', $data['url'], $newLine]);
+            $error['byte'] = implode(['Bytes: ', $data['byte'], $newLine]);
+            $error['referrer'] = implode(['Referrer: ', $data['referrer'], $newLine]);
+            $error['user_agent'] = implode(['User Agent: ', $data['user_agent'], $newLine, $newLine]);
+
+            $out = implode($error);
         } else {
-            $out = 'Error: unexpected fgets() fail.' . "\n";
-            file_put_contents('ParseLog.txt', $out, FILE_APPEND);
+            $errorMessage = 'Error: unexpected fgets() fail.';
+            $out = implode(' ', [date('Y-m-d H:i:s'), $errorMessage, $newLine, $newLine]);
         }
-
+        file_put_contents('ParseLog.txt', $out, FILE_APPEND);
     }
 }

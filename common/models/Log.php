@@ -54,6 +54,7 @@ class Log extends ActiveRecord
             [['ip'], 'string', 'max' => 15],
             [['method'], 'string', 'max' => 10],
             [['url', 'referrer', 'user_agent'], 'string', 'max' => 255],
+            [['ip', 'time', 'method', 'url', 'response', 'byte', 'referrer', 'user_agent'], 'safe']
         ];
     }
 
