@@ -24,16 +24,19 @@ class LogSearch extends Log
         return [
             [['id', 'time', 'response', 'byte', 'created_at'], 'integer'],
             [['ip', 'method', 'url', 'referrer', 'user_agent', 'from_date', 'to_date'], 'safe'],
-            [['from_date', 'to_date'], 'isDate'],
+            [['from_date', 'to_date'], 'trim'],
+            [['from_date'], 'validateDates'],
+            [['from_date', 'to_date'], 'match', 'pattern' => '#^[0-9]{2}\.[0-9]{2}\.[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}$#'],
         ];
     }
 
-    public function isDate($attribute)
+    /**
+     * @param $attribute
+     *
+     * Валидация для временного интервала.
+     */
+    public function validateDates($attribute)
     {
-        $pattern = '#^[0-9]{2}\.[0-9]{2}\.[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}$#';
-        if (!preg_match($pattern, $this->$attribute)) {
-            $this->addError($attribute, 'Please input correct date. Example: 15.11.2018 10:34:53.');
-        }
         if (!empty($this->from_date) && !empty($this->to_date)) {
             if ($this->from_date > $this->to_date) {
                 $this->addError('*', '\'From Date\' should be less than \'To Date\'.');
@@ -95,20 +98,37 @@ class LogSearch extends Log
         return $dataProvider;
     }
 
+    /**
+     * @param $fromDate
+     * @param $toDate
+     * @return array
+     *
+     * Получаем временной интервал из параметров запроса.
+     */
     public static function dateHandler($fromDate, $toDate)
     {
+        # Тайм зона из settings.php
         $timezone = new DateTimeZone(Yii::$app->params['timezone']);
+
         if (!empty($fromDate)) {
             $fromDate = DateTime::createFromFormat('d.m.Y H:i:s', $fromDate, $timezone)->format('U');
-//            $fromDate = ($fromDate) ? $fromDate->format('U') : false;
+            //$fromDate = ($fromDate) ? $fromDate->format('U') : false;
         }
+
         if (!empty($toDate)) {
             $toDate = DateTime::createFromFormat('d.m.Y H:i:s', $toDate, $timezone)->format('U');
-//            $toDate = ($toDate) ? $toDate->format('U') : false;
+            //$toDate = ($toDate) ? $toDate->format('U') : false;
         }
+
         return ['from_date' => $fromDate, 'to_date' => $toDate];
     }
 
+    /**
+     * @param $dates
+     * @return array
+     *
+     * Формируем условие на временной интервал.
+     */
     public static function condition($dates)
     {
         $fromDate = $dates['from_date'];

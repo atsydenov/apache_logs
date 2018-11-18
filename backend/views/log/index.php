@@ -1,7 +1,8 @@
 <?php
 
 use yii\helpers\Html;
-use yii\grid\GridView;
+//use yii\grid\GridView;
+use kartik\grid\GridView;
 
 /* @var $this yii\web\View */
 /* @var $searchModel common\models\LogSearch */
@@ -23,15 +24,20 @@ $this->params['breadcrumbs'][] = $this->title;
             'timeZone' => Yii::$app->params['timezone']
         ],
         'columns' => [
-            ['class' => 'yii\grid\SerialColumn'],
-            'ip',
+            ['class' => 'kartik\grid\SerialColumn'],
+            [
+                'attribute' => 'ip',
+                'group' => true,
+//                'subGroupOf' => 1
+            ],
             [
                 'attribute' => 'time',
                 'format' =>  ['date', 'dd.MM.Y H:i:s'],
+                'group' => true,
             ],
             'url',
             [
-                'class' => 'yii\grid\ActionColumn',
+                'class' => 'kartik\grid\ActionColumn',
                 'template' => '{view} {delete}',
             ],
         ],
