@@ -49,7 +49,7 @@ class InstallController extends Controller
     public static function cronCommand()
     {
         $webroot = Yii::getAlias('@webroot');
-        $command = 'cd %s && php yii install/test';
+        $command = 'cd %s && php yii log/logs-handler';
         return sprintf($command, $webroot);
     }
 }
