@@ -13,7 +13,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="log-index">
 
     <h1><?= Html::encode($this->title) ?></h1>
-    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
+    <?php echo $this->render('_search', ['model' => $searchModel]); ?>
 
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
@@ -29,7 +29,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 'attribute' => 'time',
                 'format' =>  ['date', 'dd.MM.Y H:i:s'],
             ],
-            'response',
+            'url',
             [
                 'class' => 'yii\grid\ActionColumn',
                 'template' => '{view} {delete}',

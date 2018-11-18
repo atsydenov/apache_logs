@@ -15,29 +15,14 @@ use yii\widgets\ActiveForm;
         'method' => 'get',
     ]); ?>
 
-    <?= $form->field($model, 'id') ?>
+    <?= $form->errorSummary($model) ?>
 
-    <?= $form->field($model, 'ip') ?>
+    <?= $form->field($model, 'from_date') ?>
 
-    <?= $form->field($model, 'time') ?>
-
-    <?= $form->field($model, 'method') ?>
-
-    <?= $form->field($model, 'url') ?>
-
-    <?php // echo $form->field($model, 'response') ?>
-
-    <?php // echo $form->field($model, 'byte') ?>
-
-    <?php // echo $form->field($model, 'referrer') ?>
-
-    <?php // echo $form->field($model, 'user_agent') ?>
-
-    <?php // echo $form->field($model, 'created_at') ?>
+    <?= $form->field($model, 'to_date') ?>
 
     <div class="form-group">
         <?= Html::submitButton('Search', ['class' => 'btn btn-primary']) ?>
-        <?= Html::resetButton('Reset', ['class' => 'btn btn-default']) ?>
     </div>
 
     <?php ActiveForm::end(); ?>

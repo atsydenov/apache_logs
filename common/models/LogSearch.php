@@ -2,16 +2,20 @@
 
 namespace common\models;
 
+use DateTime;
+use DateTimeZone;
 use Yii;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
-use common\models\Log;
 
 /**
  * LogSearch represents the model behind the search form of `common\models\Log`.
  */
 class LogSearch extends Log
 {
+    public $from_date;
+    public $to_date;
+
     /**
      * {@inheritdoc}
      */
@@ -19,9 +23,24 @@ class LogSearch extends Log
     {
         return [
             [['id', 'time', 'response', 'byte', 'created_at'], 'integer'],
-            [['ip', 'method', 'url', 'referrer', 'user_agent'], 'safe'],
+            [['ip', 'method', 'url', 'referrer', 'user_agent', 'from_date', 'to_date'], 'safe'],
+            [['from_date', 'to_date'], 'isDate'],
         ];
     }
+
+    public function isDate($attribute)
+    {
+        $pattern = '#^[0-9]{2}\.[0-9]{2}\.[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}$#';
+        if (!preg_match($pattern, $this->$attribute)) {
+            $this->addError($attribute, 'Please input correct date. Example: 15.11.2018 10:34:53.');
+        }
+        if (!empty($this->from_date) && !empty($this->to_date)) {
+            if ($this->from_date > $this->to_date) {
+                $this->addError('*', '\'From Date\' should be less than \'To Date\'.');
+            }
+        }
+    }
+
 
     /**
      * {@inheritdoc}
@@ -50,6 +69,8 @@ class LogSearch extends Log
         ]);
 
         $this->load($params);
+        $dates = self::dateHandler($this->from_date, $this->to_date);
+        $condition = self::condition($dates);
 
         if (!$this->validate()) {
             // uncomment the following line if you do not want to return any records when validation fails
@@ -60,11 +81,10 @@ class LogSearch extends Log
         // grid filtering conditions
         $query->andFilterWhere([
             'id' => $this->id,
-            'time' => $this->time,
             'response' => $this->response,
             'byte' => $this->byte,
             'created_at' => $this->created_at,
-        ]);
+        ])->andFilterWhere($condition);
 
         $query->andFilterWhere(['like', 'ip', $this->ip])
             ->andFilterWhere(['like', 'method', $this->method])
@@ -73,5 +93,39 @@ class LogSearch extends Log
             ->andFilterWhere(['like', 'user_agent', $this->user_agent]);
 
         return $dataProvider;
+    }
+
+    public static function dateHandler($fromDate, $toDate)
+    {
+        $timezone = new DateTimeZone(Yii::$app->params['timezone']);
+        if (!empty($fromDate)) {
+            $fromDate = DateTime::createFromFormat('d.m.Y H:i:s', $fromDate, $timezone)->format('U');
+//            $fromDate = ($fromDate) ? $fromDate->format('U') : false;
+        }
+        if (!empty($toDate)) {
+            $toDate = DateTime::createFromFormat('d.m.Y H:i:s', $toDate, $timezone)->format('U');
+//            $toDate = ($toDate) ? $toDate->format('U') : false;
+        }
+        return ['from_date' => $fromDate, 'to_date' => $toDate];
+    }
+
+    public static function condition($dates)
+    {
+        $fromDate = $dates['from_date'];
+        $toDate = $dates['to_date'];
+
+        if (empty($fromDate) && empty($toDate)) {
+            return ['>', 'time', 0];
+        }
+
+        if (empty($fromDate) && !empty($toDate)) {
+            $fromDate = 0;
+        }
+
+        if (!empty($fromDate) && empty($toDate)) {
+            return ['>', 'time', $fromDate];
+        }
+
+        return ['between', 'time', $fromDate, $toDate];
     }
 }
