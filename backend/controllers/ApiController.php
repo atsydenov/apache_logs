@@ -15,6 +15,9 @@ class ApiController extends ActiveController
     CONST PARAM_FROM_DATE = 'fd';
     CONST PARAM_TO_DATE = 'td';
 
+    CONST PARAM_GROUP_IP_KEY = 'group';
+    CONST PARAM_GROUP_IP_VALUE = 'ip';
+
     public $modelClass = 'common\models\Log';
 
     public function behaviors()
@@ -40,10 +43,16 @@ class ApiController extends ActiveController
                 'prepareDataProvider' => function () {
                     $condition = self::condition();
                     $query = Log::find()->where($condition);
-                    return new ActiveDataProvider([
+                    $data = new ActiveDataProvider([
                         'query' => $query,
                         'pagination' => false,
+                        'sort' => [
+                            'attributes' => ['ip'],
+                        ],
                     ]);
+                    $data = $data->getModels();
+                    $result = self::group($data);
+                    return $result;
                 }
             ],
         ];
@@ -100,5 +109,65 @@ class ApiController extends ActiveController
                 return -1;
             }
         } else return null;
+    }
+
+    /**
+     * @return bool
+     *
+     * Проверка наличия параметра группировки по ip в запросе.
+     */
+    public static function getGroupParamFromRequest()
+    {
+        $queryParams = Yii::$app->request->queryParams;
+        $result = false;
+
+        if (ArrayHelper::keyExists(self::PARAM_GROUP_IP_KEY, $queryParams, false)) {
+            if (strtolower($queryParams[self::PARAM_GROUP_IP_KEY]) == self::PARAM_GROUP_IP_VALUE) {
+                $result = true;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @param $data
+     * @return array
+     *
+     * Группировка по ip.
+     */
+    public static function group($data)
+    {
+        $result = $data;
+        $ips = self::getIPsFromArrayObjects($data);
+
+        if (self::getGroupParamFromRequest() && !empty($ips)) {
+            $result = [];
+            foreach ($ips as $ip) {
+                foreach ($data as $model) {
+                    if ($ip == $model->ip) {
+                        $result[$ip][] = $model;
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @param $data
+     * @return array
+     *
+     * Получаем все ip из массива объектов.
+     */
+    public static function getIPsFromArrayObjects($data)
+    {
+        $ips = [];
+        /** @var Log $object */
+        foreach ($data as $object) {
+            if ($object->hasAttribute('ip')) {
+                $ips[] = $object->ip;
+            }
+        }
+        return array_unique($ips);
     }
 }
