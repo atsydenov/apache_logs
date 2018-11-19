@@ -13,8 +13,22 @@ use yii\data\ActiveDataProvider;
  */
 class LogSearch extends Log
 {
+    /**
+     * @var string
+     * Левый конец временного интервала.
+     */
     public $from_date;
+
+    /**
+     * @var string
+     * Правый конец временного интервала.
+     */
     public $to_date;
+
+    /**
+     * Формат даты из формы поиска.
+     */
+    CONST DATE_FORMAT = 'd.m.Y H:i:s';
 
     /**
      * {@inheritdoc}
@@ -26,24 +40,29 @@ class LogSearch extends Log
             [['ip', 'method', 'url', 'referrer', 'user_agent', 'from_date', 'to_date'], 'safe'],
             [['from_date', 'to_date'], 'trim'],
             [['from_date'], 'validateDates'],
-            [['from_date', 'to_date'], 'match', 'pattern' => '#^[0-9]{2}\.[0-9]{2}\.[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}$#'],
+            [
+                ['from_date', 'to_date'],
+                'match', 'pattern' => '#^[0-9]{2}\.[0-9]{2}\.2[0-9]{3} [0-9]{2}:[0-9]{2}:[0-9]{2}$#',
+                'message' => 'Please input correct date, example: 15.11.2018 10:34:53.'
+            ],
         ];
     }
 
     /**
-     * @param $attribute
      *
      * Валидация для временного интервала.
      */
-    public function validateDates($attribute)
+    public function validateDates()
     {
+        $dateFormat = self::DATE_FORMAT;
         if (!empty($this->from_date) && !empty($this->to_date)) {
-            if ($this->from_date > $this->to_date) {
+            $fromDate = DateTime::createFromFormat($dateFormat, $this->from_date)->format('U');
+            $toDate = DateTime::createFromFormat($dateFormat, $this->to_date)->format('U');
+            if ($fromDate > $toDate) {
                 $this->addError('*', '\'From Date\' should be less than \'To Date\'.');
             }
         }
     }
-
 
     /**
      * {@inheritdoc}
@@ -72,8 +91,7 @@ class LogSearch extends Log
         ]);
 
         $this->load($params);
-        $dates = self::dateHandler($this->from_date, $this->to_date);
-        $condition = self::condition($dates);
+        $intervalTime = self::intervalTime($this->from_date, $this->to_date);
 
         if (!$this->validate()) {
             // uncomment the following line if you do not want to return any records when validation fails
@@ -82,18 +100,10 @@ class LogSearch extends Log
         }
 
         // grid filtering conditions
-        $query->andFilterWhere([
-            'id' => $this->id,
-            'response' => $this->response,
-            'byte' => $this->byte,
-            'created_at' => $this->created_at,
-        ])->andFilterWhere($condition);
+        $query->andFilterWhere($intervalTime);
 
         $query->andFilterWhere(['like', 'ip', $this->ip])
-            ->andFilterWhere(['like', 'method', $this->method])
-            ->andFilterWhere(['like', 'url', $this->url])
-            ->andFilterWhere(['like', 'referrer', $this->referrer])
-            ->andFilterWhere(['like', 'user_agent', $this->user_agent]);
+            ->andFilterWhere(['like', 'url', $this->url]);
 
         return $dataProvider;
     }
@@ -103,36 +113,13 @@ class LogSearch extends Log
      * @param $toDate
      * @return array
      *
-     * Получаем временной интервал из параметров запроса.
+     * Возвращает временной интервал поиска в виде массива условия.
      */
-    public static function dateHandler($fromDate, $toDate)
+    public static function intervalTime($fromDate, $toDate)
     {
+        $dateFormat = self::DATE_FORMAT;
         # Тайм зона из settings.php
         $timezone = new DateTimeZone(Yii::$app->params['timezone']);
-
-        if (!empty($fromDate)) {
-            $fromDate = DateTime::createFromFormat('d.m.Y H:i:s', $fromDate, $timezone)->format('U');
-            //$fromDate = ($fromDate) ? $fromDate->format('U') : false;
-        }
-
-        if (!empty($toDate)) {
-            $toDate = DateTime::createFromFormat('d.m.Y H:i:s', $toDate, $timezone)->format('U');
-            //$toDate = ($toDate) ? $toDate->format('U') : false;
-        }
-
-        return ['from_date' => $fromDate, 'to_date' => $toDate];
-    }
-
-    /**
-     * @param $dates
-     * @return array
-     *
-     * Формируем условие на временной интервал.
-     */
-    public static function condition($dates)
-    {
-        $fromDate = $dates['from_date'];
-        $toDate = $dates['to_date'];
 
         if (empty($fromDate) && empty($toDate)) {
             return ['>', 'time', 0];
@@ -140,10 +127,17 @@ class LogSearch extends Log
 
         if (empty($fromDate) && !empty($toDate)) {
             $fromDate = 0;
+            $toDate = DateTime::createFromFormat($dateFormat, $toDate, $timezone)->format('U');
         }
 
         if (!empty($fromDate) && empty($toDate)) {
-            return ['>', 'time', $fromDate];
+            $fromDate = DateTime::createFromFormat($dateFormat, $fromDate, $timezone)->format('U');
+            return ['>=', 'time', $fromDate];
+        }
+
+        if (!empty($fromDate) && !empty($toDate)) {
+            $fromDate = DateTime::createFromFormat($dateFormat, $fromDate, $timezone)->format('U');
+            $toDate = DateTime::createFromFormat($dateFormat, $toDate, $timezone)->format('U');
         }
 
         return ['between', 'time', $fromDate, $toDate];
