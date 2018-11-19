@@ -49,3 +49,12 @@ php yii install/run
 ```
 php yii install/stop
 ```
+
+Примеры использования API (предполагаем, что `http://app.local -> ../backend/web/`, то есть root сервера установлен в папку `../backend/web/`):
+```
+    http://app.local/api - полный список логов
+    http://app.local/api?sort=ip - сортировка по ip (ASC)
+    http://app.local/api?sort=-ip - сортировка по ip (DESC)
+    http://app.local/api?fd=0&td=100 - получение выборки по временному интервалу (from date, to date)
+    http://app.local/api?group=ip - группировка по ip
+```
