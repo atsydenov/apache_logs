@@ -55,6 +55,6 @@ php yii install/stop
     http://app.local/api - полный список логов
     http://app.local/api?sort=ip - сортировка по ip (ASC)
     http://app.local/api?sort=-ip - сортировка по ip (DESC)
-    http://app.local/api?fd=0&td=100 - получение выборки по временному интервалу (from date, to date)
+    http://app.local/api?fd=0&td=100 - получение выборки по временному интервалу в unix формате (from date, to date)
     http://app.local/api?group=ip - группировка по ip
 ```
