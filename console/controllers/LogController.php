@@ -10,11 +10,15 @@ use yii\helpers\FileHelper;
 
 class LogController extends Controller
 {
-    # Формат логов
+    /**
+     * Формат логов.
+     */
     CONST FORMAT_LOGS_COMBINED = 'combined';
     CONST FORMAT_LOGS_COMMON = 'common';
 
-    # Шаблоны для поиска в строке
+    /**
+     * Шаблоны для поиска в строке.
+     */
     CONST PATTERN_COMBINED = '#(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+) (\".*?\") (\".*?\")#';
     CONST PATTERN_COMMON = '#(\S+) (\S+) (\S+) \[([^:]+):(\d+:\d+:\d+) ([^\]]+)\] \"(\S+) (.*?) (\S+)\" (\S+) (\S+)#';
 
@@ -44,6 +48,8 @@ class LogController extends Controller
     /**
      * @param $path string
      * @return string
+     *
+     * Вовзращает полный путь до файла с названием.
      */
     public static function getFileByPath($path)
     {
@@ -173,7 +179,6 @@ class LogController extends Controller
      */
     public static function writeParseLog(array $data = [])
     {
-        $newLine = "\n";
         $dateTime = new DateTime();
         $time = $dateTime->format('d-m-Y H:i:s O');
 
@@ -181,20 +186,20 @@ class LogController extends Controller
             $errorMessage = ' Error: log not saved. Log description: ';
 
             $error = [];
-            $error['common'] = implode([$time, $errorMessage, $newLine]);
-            $error['ip'] = implode(['IP: ', $data['ip'], $newLine]);
-            $error['time'] = implode(['Time: ', $data['time'], $newLine]);
-            $error['method'] = implode(['Method: ', $data['method'], $newLine]);
-            $error['url'] = implode(['Method: ', $data['url'], $newLine]);
-            $error['response'] = implode(['Response: ', $data['url'], $newLine]);
-            $error['byte'] = implode(['Bytes: ', $data['byte'], $newLine]);
-            $error['referrer'] = implode(['Referrer: ', $data['referrer'], $newLine]);
-            $error['user_agent'] = implode(['User Agent: ', $data['user_agent'], $newLine, $newLine]);
+            $error['common'] = implode([$time, $errorMessage, PHP_EOL]);
+            $error['ip'] = implode(['IP: ', $data['ip'], PHP_EOL]);
+            $error['time'] = implode(['Time: ', $data['time'], PHP_EOL]);
+            $error['method'] = implode(['Method: ', $data['method'], PHP_EOL]);
+            $error['url'] = implode(['Method: ', $data['url'], PHP_EOL]);
+            $error['response'] = implode(['Response: ', $data['url'], PHP_EOL]);
+            $error['byte'] = implode(['Bytes: ', $data['byte'], PHP_EOL]);
+            $error['referrer'] = implode(['Referrer: ', $data['referrer'], PHP_EOL]);
+            $error['user_agent'] = implode(['User Agent: ', $data['user_agent'], PHP_EOL, PHP_EOL]);
 
             $out = implode($error);
         } else {
             $errorMessage = ' Error: unexpected fgets() fail.';
-            $out = implode(' ', [$time, $errorMessage, $newLine, $newLine]);
+            $out = implode(' ', [$time, $errorMessage, PHP_EOL, PHP_EOL]);
         }
         file_put_contents('ParseLog.txt', $out, FILE_APPEND);
     }
