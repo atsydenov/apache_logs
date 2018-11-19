@@ -28,12 +28,12 @@ $this->params['breadcrumbs'][] = $this->title;
             [
                 'attribute' => 'ip',
                 'group' => true,
-//                'subGroupOf' => 1
             ],
             [
                 'attribute' => 'time',
                 'format' =>  ['date', 'dd.MM.Y H:i:s'],
                 'group' => true,
+                'subGroupOf' => 1
             ],
             'url',
             [
