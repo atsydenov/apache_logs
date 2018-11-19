@@ -12,14 +12,34 @@ use yii\web\Response;
 
 class ApiController extends ActiveController
 {
+    /**
+     * Левый конец временного интервала.
+     */
     CONST PARAM_FROM_DATE = 'fd';
+
+    /**
+     * Правый конец временного интервала.
+     */
     CONST PARAM_TO_DATE = 'td';
 
+    /**
+     * Параметр для группировки по IP (?group=ip).
+     */
     CONST PARAM_GROUP_IP_KEY = 'group';
     CONST PARAM_GROUP_IP_VALUE = 'ip';
 
+    /**
+     * @var string
+     *
+     * Модель для API.
+     */
     public $modelClass = 'common\models\Log';
 
+    /**
+     * @return array
+     *
+     * Вывод в формате JSON.
+     */
     public function behaviors()
     {
         return ArrayHelper::merge(parent::behaviors(), [
@@ -33,6 +53,11 @@ class ApiController extends ActiveController
         ]);
     }
 
+    /**
+     * @return array
+     *
+     * Для actionIndex задаём группировку по IP и выборку по временному интервалу.
+     */
     public function actions()
     {
         return [
@@ -41,8 +66,8 @@ class ApiController extends ActiveController
                 'modelClass' => $this->modelClass,
                 'checkAccess' => [$this, 'checkAccess'],
                 'prepareDataProvider' => function () {
-                    $condition = self::condition();
-                    $query = Log::find()->where($condition);
+                    $intervalTime = self::intervalTime();
+                    $query = Log::find()->where($intervalTime);
                     $data = new ActiveDataProvider([
                         'query' => $query,
                         'pagination' => false,
@@ -61,18 +86,13 @@ class ApiController extends ActiveController
     /**
      * @return array
      * @throws BadRequestHttpException
+     *
+     * Возвращает временной интервал поиска в виде массива условия.
      */
-    public static function condition()
+    public static function intervalTime()
     {
-        $fromDate = self::getIntParamFromRequest(self::PARAM_FROM_DATE);
-        if ($fromDate === -1) {
-            throw new BadRequestHttpException('Bad Request: parameter fd is incorrect.');
-        }
-
-        $toDate = self::getIntParamFromRequest(self::PARAM_TO_DATE);
-        if ($toDate === -1) {
-            throw new BadRequestHttpException('Bad Request: parameter td is incorrect.');
-        }
+        $fromDate = self::findTimeParamInRequest(self::PARAM_FROM_DATE);
+        $toDate = self::findTimeParamInRequest(self::PARAM_TO_DATE);
 
         if ($fromDate === null && $toDate === null) {
             return ['>', 'time', 0];
@@ -83,7 +103,7 @@ class ApiController extends ActiveController
         }
 
         if ($fromDate !== null && $toDate === null) {
-            return ['>', 'time', $fromDate];
+            return ['>=', 'time', $fromDate];
         }
 
         if ($fromDate > $toDate) {
@@ -94,29 +114,34 @@ class ApiController extends ActiveController
     }
 
     /**
-     * @param $param string
-     * @return int
+     * @param $param
+     * @return mixed|null
+     * @throws BadRequestHttpException
+     *
+     * Поиск целочисленного, положительного параметра в запросе для определения временного интервала.
+     * Если временной параметр отсутствует, возвращает null.
      */
-    public static function getIntParamFromRequest($param)
+    public static function findTimeParamInRequest($param)
     {
         $queryParams = Yii::$app->request->queryParams;
+        $result = null;
 
         if (ArrayHelper::keyExists($param, $queryParams, false)) {
-            $filter = filter_var($queryParams[$param], FILTER_VALIDATE_INT);
-            if ($filter === 0 || $filter > 0) {
-                return $filter;
-            } else {
-                return -1;
+            $result = filter_var($queryParams[$param], FILTER_VALIDATE_INT);
+            if ($result < 0) {
+                $errorMessage = 'Bad Request: parameter %s must be positive.';
+                throw new BadRequestHttpException(sprintf($errorMessage, $param));
             }
-        } else return null;
+        }
+        return $result;
     }
 
     /**
      * @return bool
      *
-     * Проверка наличия параметра группировки по ip в запросе.
+     * Проверка наличия параметра группировки по IP в запросе.
      */
-    public static function getGroupParamFromRequest()
+    public static function isGroupRequest()
     {
         $queryParams = Yii::$app->request->queryParams;
         $result = false;
@@ -133,16 +158,16 @@ class ApiController extends ActiveController
      * @param $data
      * @return array
      *
-     * Группировка по ip.
+     * Группировка ActiveDataProvider по IP.
      */
     public static function group($data)
     {
         $result = $data;
-        $ips = self::getIPsFromArrayObjects($data);
+        $uniqueIPs = array_unique(ArrayHelper::getColumn($data, 'ip'));
 
-        if (self::getGroupParamFromRequest() && !empty($ips)) {
+        if (self::isGroupRequest() && !empty($uniqueIPs)) {
             $result = [];
-            foreach ($ips as $ip) {
+            foreach ($uniqueIPs as $ip) {
                 foreach ($data as $model) {
                     if ($ip == $model->ip) {
                         $result[$ip][] = $model;
@@ -151,23 +176,5 @@ class ApiController extends ActiveController
             }
         }
         return $result;
-    }
-
-    /**
-     * @param $data
-     * @return array
-     *
-     * Получаем все ip из массива объектов.
-     */
-    public static function getIPsFromArrayObjects($data)
-    {
-        $ips = [];
-        /** @var Log $object */
-        foreach ($data as $object) {
-            if ($object->hasAttribute('ip')) {
-                $ips[] = $object->ip;
-            }
-        }
-        return array_unique($ips);
     }
 }
