@@ -22,7 +22,7 @@ class LogSearch extends Log
     public function rules()
     {
         return [
-            [['id', 'time', 'response', 'byte', 'created_at'], 'integer'],
+            [['id', 'response', 'byte', 'created_at'], 'integer'],
             [['ip', 'method', 'url', 'referrer', 'user_agent', 'from_date', 'to_date'], 'safe'],
             [['from_date', 'to_date'], 'trim'],
             [['from_date'], 'validateDates'],
