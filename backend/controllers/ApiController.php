@@ -70,7 +70,9 @@ class ApiController extends ActiveController
                     $query = Log::find()->where($intervalTime);
                     $data = new ActiveDataProvider([
                         'query' => $query,
-                        'pagination' => false,
+                        'pagination' => [
+                            'defaultPageSize' => 100,
+                        ],
                         'sort' => [
                             'attributes' => ['ip'],
                         ],

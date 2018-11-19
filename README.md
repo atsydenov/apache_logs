@@ -57,4 +57,5 @@ php yii install/stop
     http://app.local/api?sort=-ip - сортировка по ip (DESC)
     http://app.local/api?fd=0&td=100 - получение выборки по временному интервалу в unix формате (from date, to date)
     http://app.local/api?group=ip - группировка по ip
+    http://app.local/api?per-page=10 - получение 10 записей на страницу (по умолчанию 100)
 ```
