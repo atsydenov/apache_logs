@@ -107,16 +107,16 @@ class LogController extends Controller
         $date = self::timeTransform($matches[4][0], $matches[5][0], $matches[6][0]);
 
         $data = [];
-        $data['ip'] = substr($matches[1][0], 0, 15);
+        $data['ip'] = mb_substr($matches[1][0], 0, 15);
         $data['time'] = intval($date->format('U'));
-        $data['method'] = substr($matches[7][0],0,10);
-        $data['url'] = substr($matches[8][0],0,255);
+        $data['method'] = mb_substr($matches[7][0],0,10);
+        $data['url'] = mb_substr($matches[8][0],0,255);
         $data['response'] = intval($matches[10][0]);
         $data['byte'] = intval($matches[11][0]);
 
         # Существование переменных зависит от $pattern
-        $data['referrer'] = (isset($matches[12][0]) && strlen($matches[12][0]) > 0) ? substr($matches[12][0], 0,255) : null;
-        $data['user_agent'] = (isset($matches[12][0]) && strlen($matches[12][0]) > 0) ? substr($matches[13][0], 0, 255) : null;
+        $data['referrer'] = (isset($matches[12][0]) && strlen($matches[12][0]) > 0) ? mb_substr($matches[12][0], 0, 255) : null;
+        $data['user_agent'] = (isset($matches[12][0]) && strlen($matches[12][0]) > 0) ? mb_substr($matches[13][0], 0, 255) : null;
 
         return $data;
 	}

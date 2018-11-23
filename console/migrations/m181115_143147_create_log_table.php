@@ -29,6 +29,54 @@ class m181115_143147_create_log_table extends Migration
             'user_agent' => $this->string(255),
             'created_at' => $this->integer()->notNull(),
         ], $tableOptions);
+
+        $this->createIndex(
+            'idx-ip',
+            'log',
+            'ip'
+        );
+
+        $this->createIndex(
+            'idx-time',
+            'log',
+            'time'
+        );
+
+        $this->createIndex(
+            'idx-method',
+            'log',
+            'method'
+        );
+
+        $this->createIndex(
+            'idx-url',
+            'log',
+            'url'
+        );
+
+        $this->createIndex(
+            'idx-response',
+            'log',
+            'response'
+        );
+
+        $this->createIndex(
+            'idx-byte',
+            'log',
+            'byte'
+        );
+
+        $this->createIndex(
+            'idx-referrer',
+            'log',
+            'referrer'
+        );
+
+        $this->createIndex(
+            'idx-user_agent',
+            'log',
+            'user_agent'
+        );
     }
 
     /**
@@ -36,6 +84,46 @@ class m181115_143147_create_log_table extends Migration
      */
     public function safeDown()
     {
+        $this->dropIndex(
+            'idx-ip',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-time',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-method',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-url',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-response',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-byte',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-referrer',
+            'log'
+        );
+
+        $this->dropIndex(
+            'idx-user_agent',
+            'log'
+        );
+
         $this->dropTable('log');
     }
 }
